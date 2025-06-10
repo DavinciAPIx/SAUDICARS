@@ -20,6 +20,10 @@ export default function ProfileScreen() {
     await setSelectedLanguage(newLanguage);
   };
 
+  const handleLogout = async () => {
+    router.replace('/(auth)/login');
+  };
+
   const MenuOption = ({ 
     icon, 
     title, 
