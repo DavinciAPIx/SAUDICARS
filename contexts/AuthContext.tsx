@@ -166,23 +166,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const result = await verifyOTP(otp);
       
       if ('id' in result) {
-        // Verification successful - immediately set user state to avoid timing issues
-        const userData: User = {
-          id: result.id,
-          phoneNumber: result.phone || '',
-          displayName: '',
-          email: result.email || '',
-          isVerified: false,
-          driverLicense: undefined,
-          nationalId: undefined,
-          profileImage: undefined,
-          created: result.created_at
-        };
-        
-        if (isMountedRef.current) {
-          setUser(userData);
-          await AsyncStorage.setItem('user', JSON.stringify(userData));
-        }
+        // Verification successful - the onAuthStateChange listener will handle user state updates
+        // Wait a moment to ensure the auth state change has been processed
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         if (isMountedRef.current) {
           setIsLoading(false);
@@ -207,21 +193,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const register = async (userData: Partial<User>): Promise<boolean> => {
     try {
-      // Use the user from context instead of trying to get session
-      if (!user) {
-        console.error('Registration error: No user found in context');
-        return false;
+      // Get current user from Supabase session if context user is not available
+      let currentUser = user;
+      if (!currentUser) {
+        const supabaseUser = await getCurrentUser();
+        if (!supabaseUser) {
+          console.error('Registration error: No authenticated session found');
+          return false;
+        }
+        
+        // Create temporary user object for registration
+        const phoneNumber = await AsyncStorage.getItem('phoneNumber') || '';
+        currentUser = {
+          id: supabaseUser.id,
+          phoneNumber: supabaseUser.phone || phoneNumber,
+          displayName: '',
+          email: '',
+          isVerified: false,
+          created: supabaseUser.created_at
+        };
       }
       
       if (isMountedRef.current) {
         setIsLoading(true);
       }
       
-      // Use user ID from context and phone number from user object
-      const result = await createUserProfile(user.id, user.phoneNumber, userData);
+      // Use current user ID and phone number
+      const result = await createUserProfile(currentUser.id, currentUser.phoneNumber, userData);
       
       if ('id' in result) {
-        // Registration successful - let onAuthStateChange handle user state updates
+        // Registration successful - update user state immediately
+        if (isMountedRef.current) {
+          setUser(result);
+          await AsyncStorage.setItem('user', JSON.stringify(result));
+        }
+        
         if (isMountedRef.current) {
           setIsLoading(false);
         }
