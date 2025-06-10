@@ -98,12 +98,12 @@ export const verifyOTP = async (code: string): Promise<User | AuthError> => {
     }
     
     if (data.user) {
-      // Check if user profile exists
+      // Check if user profile exists - use maybeSingle() to handle cases where profile doesn't exist
       const { data: profile } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
       
       const user: User = {
         id: data.user.id,
@@ -156,7 +156,7 @@ export const createUserProfile = async (userData: Partial<User>): Promise<User |
         email: userData.email,
         national_id: userData.nationalId,
         driver_license: userData.driverLicense,
-        is_verified: true,
+        is_verified: false, // Set to false by default for new profiles
         updated_at: new Date().toISOString()
       })
       .select()
@@ -176,7 +176,7 @@ export const createUserProfile = async (userData: Partial<User>): Promise<User |
       email: data.email || '',
       nationalId: data.national_id,
       driverLicense: data.driver_license,
-      isVerified: data.is_verified,
+      isVerified: data.is_verified || false,
       profileImage: data.avatar_url,
       created: data.created_at || user.created_at
     };
@@ -204,6 +204,7 @@ export const updateUserProfile = async (userId: string, data: Partial<User>): Pr
         national_id: data.nationalId,
         driver_license: data.driverLicense,
         avatar_url: data.profileImage,
+        is_verified: data.isVerified,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId)
@@ -224,7 +225,7 @@ export const updateUserProfile = async (userId: string, data: Partial<User>): Pr
       email: updatedData.email || '',
       nationalId: updatedData.national_id,
       driverLicense: updatedData.driver_license,
-      isVerified: updatedData.is_verified,
+      isVerified: updatedData.is_verified || false,
       profileImage: updatedData.avatar_url,
       created: updatedData.created_at
     };

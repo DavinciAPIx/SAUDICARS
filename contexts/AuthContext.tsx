@@ -47,57 +47,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Check for existing session
         const session = await getCurrentSession();
         if (session?.user && isMountedRef.current) {
-          // Get user profile from database
+          // Get user profile from database - use maybeSingle() to handle cases where profile doesn't exist
           const { data: profile } = await supabase
             .from('users')
             .select('*')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
           
-          if (profile) {
-            const userData: User = {
-              id: profile.id,
-              phoneNumber: profile.phone || session.user.phone || '',
-              displayName: profile.full_name || '',
-              email: profile.email || '',
-              isVerified: profile.is_verified || false,
-              driverLicense: profile.driver_license,
-              nationalId: profile.national_id,
-              profileImage: profile.avatar_url,
-              created: profile.created_at || session.user.created_at
-            };
-            
-            setUser(userData);
-            await AsyncStorage.setItem('user', JSON.stringify(userData));
-          }
+          // Create user data from session and profile (if exists)
+          const userData: User = {
+            id: session.user.id,
+            phoneNumber: profile?.phone || session.user.phone || '',
+            displayName: profile?.full_name || '',
+            email: profile?.email || '',
+            isVerified: profile?.is_verified || false,
+            driverLicense: profile?.driver_license,
+            nationalId: profile?.national_id,
+            profileImage: profile?.avatar_url,
+            created: profile?.created_at || session.user.created_at
+          };
+          
+          setUser(userData);
+          await AsyncStorage.setItem('user', JSON.stringify(userData));
         }
         
         // Setup Supabase Auth state observer
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
           if (event === 'SIGNED_IN' && session?.user && isMountedRef.current) {
-            // User signed in - get profile
+            // User signed in - get profile using maybeSingle()
             const { data: profile } = await supabase
               .from('users')
               .select('*')
               .eq('id', session.user.id)
-              .single();
+              .maybeSingle();
             
-            if (profile) {
-              const userData: User = {
-                id: profile.id,
-                phoneNumber: profile.phone || session.user.phone || '',
-                displayName: profile.full_name || '',
-                email: profile.email || '',
-                isVerified: profile.is_verified || false,
-                driverLicense: profile.driver_license,
-                nationalId: profile.national_id,
-                profileImage: profile.avatar_url,
-                created: profile.created_at || session.user.created_at
-              };
-              
-              setUser(userData);
-              await AsyncStorage.setItem('user', JSON.stringify(userData));
-            }
+            // Create user data from session and profile (if exists)
+            const userData: User = {
+              id: session.user.id,
+              phoneNumber: profile?.phone || session.user.phone || '',
+              displayName: profile?.full_name || '',
+              email: profile?.email || '',
+              isVerified: profile?.is_verified || false,
+              driverLicense: profile?.driver_license,
+              nationalId: profile?.national_id,
+              profileImage: profile?.avatar_url,
+              created: profile?.created_at || session.user.created_at
+            };
+            
+            setUser(userData);
+            await AsyncStorage.setItem('user', JSON.stringify(userData));
           } else if (event === 'SIGNED_OUT' && isMountedRef.current) {
             // User signed out
             setUser(null);
