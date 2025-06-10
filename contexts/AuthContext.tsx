@@ -166,9 +166,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const result = await verifyOTP(otp);
       
       if ('id' in result) {
-        // Verification successful - the onAuthStateChange listener will handle user state updates
-        // Wait a moment to ensure the auth state change has been processed
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Verification successful - immediately update user state
+        const supabaseUser = await getCurrentUser();
+        if (supabaseUser && isMountedRef.current) {
+          // Get user profile from database
+          const { data: profile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', supabaseUser.id)
+            .maybeSingle();
+          
+          // Create user data from session and profile (if exists)
+          const userData: User = {
+            id: supabaseUser.id,
+            phoneNumber: profile?.phone || supabaseUser.phone || '',
+            displayName: profile?.full_name || '',
+            email: profile?.email || '',
+            isVerified: profile?.is_verified || false,
+            driverLicense: profile?.driver_license,
+            nationalId: profile?.national_id,
+            profileImage: profile?.avatar_url,
+            created: profile?.created_at || supabaseUser.created_at
+          };
+          
+          // Immediately set user state and persist to storage
+          setUser(userData);
+          await AsyncStorage.setItem('user', JSON.stringify(userData));
+        }
         
         if (isMountedRef.current) {
           setIsLoading(false);
