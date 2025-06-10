@@ -166,35 +166,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const result = await verifyOTP(otp);
       
       if ('id' in result) {
-        // Verification successful - immediately update user state
-        const supabaseUser = await getCurrentUser();
-        if (supabaseUser && isMountedRef.current) {
-          // Get user profile from database
-          const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', supabaseUser.id)
-            .maybeSingle();
-          
-          // Create user data from session and profile (if exists)
-          const userData: User = {
-            id: supabaseUser.id,
-            phoneNumber: profile?.phone || supabaseUser.phone || '',
-            displayName: profile?.full_name || '',
-            email: profile?.email || '',
-            isVerified: profile?.is_verified || false,
-            driverLicense: profile?.driver_license,
-            nationalId: profile?.national_id,
-            profileImage: profile?.avatar_url,
-            created: profile?.created_at || supabaseUser.created_at
-          };
-          
-          // Immediately set user state and persist to storage
-          setUser(userData);
-          await AsyncStorage.setItem('user', JSON.stringify(userData));
-        }
-        
+        // Verification successful - the auth state change listener will handle user state update
+        // But we also set it immediately to ensure it's available for registration
         if (isMountedRef.current) {
+          setUser(result);
+          await AsyncStorage.setItem('user', JSON.stringify(result));
           setIsLoading(false);
         }
         return true;
@@ -217,17 +193,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const register = async (userData: Partial<User>): Promise<boolean> => {
     try {
-      // Get current user from Supabase session if context user is not available
+      if (isMountedRef.current) {
+        setIsLoading(true);
+      }
+      
+      // First, try to get user from context
       let currentUser = user;
+      let phoneNumber = '';
+      
+      // If no user in context, try to get from Supabase session
       if (!currentUser) {
         const supabaseUser = await getCurrentUser();
         if (!supabaseUser) {
           console.error('Registration error: No authenticated session found');
+          if (isMountedRef.current) {
+            setIsLoading(false);
+          }
           return false;
         }
         
+        // Get phone number from storage
+        phoneNumber = await AsyncStorage.getItem('phoneNumber') || '';
+        
         // Create temporary user object for registration
-        const phoneNumber = await AsyncStorage.getItem('phoneNumber') || '';
         currentUser = {
           id: supabaseUser.id,
           phoneNumber: supabaseUser.phone || phoneNumber,
@@ -236,23 +224,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           isVerified: false,
           created: supabaseUser.created_at
         };
+      } else {
+        phoneNumber = currentUser.phoneNumber;
       }
       
-      if (isMountedRef.current) {
-        setIsLoading(true);
-      }
-      
-      // Use current user ID and phone number
-      const result = await createUserProfile(currentUser.id, currentUser.phoneNumber, userData);
+      // Create user profile in database
+      const result = await createUserProfile(currentUser.id, phoneNumber, userData);
       
       if ('id' in result) {
         // Registration successful - update user state immediately
         if (isMountedRef.current) {
           setUser(result);
           await AsyncStorage.setItem('user', JSON.stringify(result));
-        }
-        
-        if (isMountedRef.current) {
           setIsLoading(false);
         }
         return true;
