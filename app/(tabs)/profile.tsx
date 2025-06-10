@@ -1,16 +1,14 @@
 import { StyleSheet, View, Text, Image, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { useI18n } from '@/contexts/I18nContext';
-import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useSelectedLanguage } from '@/contexts/SelectedLanguageContext';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { User, Car, CalendarCheck, MessageSquare, CreditCard, Settings, CircleHelp as HelpCircle, LogOut, ChevronRight, Globe, Bell, Moon } from 'lucide-react-native';
+import { User, Car, CalendarCheck, MessageSquare, CreditCard, Settings, CircleHelp as HelpCircle, ChevronRight, Globe, Bell, Moon } from 'lucide-react-native';
 
 export default function ProfileScreen() {
   const { t, isRTL, locale } = useI18n();
-  const { user, logout, isLoading } = useAuth();
   const { selectedLanguage, setSelectedLanguage } = useSelectedLanguage();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
@@ -20,11 +18,6 @@ export default function ProfileScreen() {
   const handleLanguageToggle = async () => {
     const newLanguage = locale === 'ar' ? 'en' : 'ar';
     await setSelectedLanguage(newLanguage);
-  };
-  
-  const handleLogout = async () => {
-    await logout();
-    router.replace('/(auth)/login');
   };
 
   const MenuOption = ({ 
@@ -104,7 +97,7 @@ export default function ProfileScreen() {
               fontFamily: isRTL ? 'Cairo-SemiBold' : 'Poppins-SemiBold'
             }
           ]}>
-            {user?.displayName || 'User Name'}
+            Ahmed Al-Rashid
           </Text>
           <Text style={[
             styles.profileVerified,
@@ -193,7 +186,7 @@ export default function ProfileScreen() {
       
       <View style={[styles.menuSection, { backgroundColor: colors.card }]}>
         <MenuOption 
-          icon={<HelpCircle size={20} color={colors.accent} />}
+          icon={<CircleHelp size={20} color={colors.accent} />}
           title={t('profile.help')}
           onPress={() => router.push('/help')}
         />
@@ -201,11 +194,6 @@ export default function ProfileScreen() {
           icon={<Settings size={20} color={colors.accent} />}
           title={t('profile.settings')}
           onPress={() => router.push('/settings')}
-        />
-        <MenuOption 
-          icon={<LogOut size={20} color={colors.error} />}
-          title={t('profile.logout')}
-          onPress={handleLogout}
         />
       </View>
       

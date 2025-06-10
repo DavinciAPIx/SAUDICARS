@@ -11,7 +11,6 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { useI18n } from '@/contexts/I18nContext';
-import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Search, MapPin, FileSliders as Sliders, Star, MapPinned } from 'lucide-react-native';
@@ -21,7 +20,6 @@ import { router } from 'expo-router';
 
 export default function HomeScreen() {
   const { t, isRTL } = useI18n();
-  const { user } = useAuth();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const [searchQuery, setSearchQuery] = useState('');
@@ -173,7 +171,7 @@ export default function HomeScreen() {
                 fontFamily: isRTL ? 'Cairo-Regular' : 'Poppins-Regular'
               }
             ]}>
-              {t('home.greeting')}{user?.displayName ? `, ${user.displayName.split(' ')[0]}` : ''}
+              {t('home.greeting')}, Ahmed
             </Text>
             <Text style={[
               styles.findCarText,

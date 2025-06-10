@@ -17,9 +17,7 @@ import {
 import { SplashScreen } from 'expo-router';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { I18nProvider } from '@/contexts/I18nContext';
-import { AuthProvider } from '@/contexts/AuthContext';
 import { SelectedLanguageProvider } from '@/contexts/SelectedLanguageContext';
-import { Platform, View } from 'react-native'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 
 // Prevent splash screen from auto-hiding
@@ -57,15 +55,11 @@ export default function RootLayout() {
   return (
     <SelectedLanguageProvider>
       <I18nProvider>
-        <AuthProvider>
-          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
-          </Stack>
-        </AuthProvider>
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
+        </Stack>
       </I18nProvider>
     </SelectedLanguageProvider>
   );
