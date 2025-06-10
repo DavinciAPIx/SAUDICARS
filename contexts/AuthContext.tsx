@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User, initializeAuthSystem } from '@/services/auth';
-import { firebaseAuth } from '@/services/firebase';
+import { User, initializeAuthSystem, sendOTP, verifyOTP, createUserProfile, updateUserProfile, signOut, getCurrentSession, getCurrentUser } from '@/services/auth';
+import { supabase } from '@/services/supabase';
 
 type AuthContextType = {
   user: User | null;
@@ -41,25 +41,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     
     const initialize = async () => {
       try {
-        // Initialize Firebase Auth and other systems
+        // Initialize Supabase Auth
         await initializeAuthSystem();
         
-        // Check for existing user session
-        const userJson = await AsyncStorage.getItem('user');
-        if (userJson && isMountedRef.current) {
-          const parsedUser = JSON.parse(userJson);
-          setUser(parsedUser);
+        // Check for existing session
+        const session = await getCurrentSession();
+        if (session?.user && isMountedRef.current) {
+          // Get user profile from database
+          const { data: profile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (profile) {
+            const userData: User = {
+              id: profile.id,
+              phoneNumber: profile.phone || session.user.phone || '',
+              displayName: profile.full_name || '',
+              email: profile.email || '',
+              isVerified: profile.is_verified || false,
+              driverLicense: profile.driver_license,
+              nationalId: profile.national_id,
+              profileImage: profile.avatar_url,
+              created: profile.created_at || session.user.created_at
+            };
+            
+            setUser(userData);
+            await AsyncStorage.setItem('user', JSON.stringify(userData));
+          }
         }
         
-        // Setup Firebase Auth state observer
-        const unsubscribe = firebaseAuth.onAuthStateChanged((firebaseUser) => {
-          if (firebaseUser && isMountedRef.current) {
-            // User is signed in
-            // You can update user data from firebase user object
-          } else if (isMountedRef.current) {
-            // User is signed out
+        // Setup Supabase Auth state observer
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (event === 'SIGNED_IN' && session?.user && isMountedRef.current) {
+            // User signed in - get profile
+            const { data: profile } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (profile) {
+              const userData: User = {
+                id: profile.id,
+                phoneNumber: profile.phone || session.user.phone || '',
+                displayName: profile.full_name || '',
+                email: profile.email || '',
+                isVerified: profile.is_verified || false,
+                driverLicense: profile.driver_license,
+                nationalId: profile.national_id,
+                profileImage: profile.avatar_url,
+                created: profile.created_at || session.user.created_at
+              };
+              
+              setUser(userData);
+              await AsyncStorage.setItem('user', JSON.stringify(userData));
+            }
+          } else if (event === 'SIGNED_OUT' && isMountedRef.current) {
+            // User signed out
             setUser(null);
-            AsyncStorage.removeItem('user');
+            await AsyncStorage.removeItem('user');
           }
         });
         
@@ -69,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         
         // Clean up the subscription
-        return () => unsubscribe();
+        return () => subscription.unsubscribe();
       } catch (error) {
         console.error('Auth initialization failed:', error);
         if (isMountedRef.current) {
@@ -91,16 +133,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (isMountedRef.current) {
         setIsLoading(true);
       }
-      // In a real app, this would be where you'd initiate OTP verification
-      // For demo purposes, we'll simulate this process
-      console.log(`Sending OTP to ${phoneNumber}`);
       
-      // Store phone number for verification step
-      await AsyncStorage.setItem('phoneNumber', phoneNumber);
-      if (isMountedRef.current) {
-        setIsLoading(false);
+      const result = await sendOTP(phoneNumber);
+      
+      if (typeof result === 'string') {
+        // OTP sent successfully
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
+        return true;
+      } else {
+        // Error occurred
+        console.error('Login error:', result.message);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
+        return false;
       }
-      return true;
     } catch (error) {
       console.error('Login error:', error);
       if (isMountedRef.current) {
@@ -110,32 +159,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const verifyOTP = async (otp: string): Promise<boolean> => {
+  const verifyOTPCode = async (otp: string): Promise<boolean> => {
     try {
       if (isMountedRef.current) {
         setIsLoading(true);
       }
-      // In a real app, this would verify the OTP with Firebase or similar
-      // For demo purposes, we'll simulate this process
-      console.log(`Verifying OTP: ${otp}`);
       
-      // Create a dummy user for demonstration
-      const phoneNumber = await AsyncStorage.getItem('phoneNumber') || '';
-      const mockUser: User = {
-        id: 'user-1',
-        phoneNumber,
-        displayName: '',
-        email: '',
-        isVerified: false,
-        created: new Date().toISOString(),
-      };
+      const result = await verifyOTP(otp);
       
-      if (isMountedRef.current) {
-        setUser(mockUser);
-        await AsyncStorage.setItem('user', JSON.stringify(mockUser));
-        setIsLoading(false);
+      if ('id' in result) {
+        // Verification successful
+        if (isMountedRef.current) {
+          setUser(result);
+          await AsyncStorage.setItem('user', JSON.stringify(result));
+          setIsLoading(false);
+        }
+        return true;
+      } else {
+        // Error occurred
+        console.error('OTP verification error:', result.message);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
+        return false;
       }
-      return true;
     } catch (error) {
       console.error('OTP verification error:', error);
       if (isMountedRef.current) {
@@ -150,24 +197,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (isMountedRef.current) {
         setIsLoading(true);
       }
-      // In a real app, this would create a user profile
-      // For demo purposes, we'll update our mock user
-      const currentUser = user;
-      if (currentUser && isMountedRef.current) {
-        const updatedUser: User = {
-          ...currentUser,
-          ...userData,
-          isVerified: true,
-        };
-        
-        setUser(updatedUser);
-        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-      }
       
-      if (isMountedRef.current) {
-        setIsLoading(false);
+      const result = await createUserProfile(userData);
+      
+      if ('id' in result) {
+        // Registration successful
+        if (isMountedRef.current) {
+          setUser(result);
+          await AsyncStorage.setItem('user', JSON.stringify(result));
+          setIsLoading(false);
+        }
+        return true;
+      } else {
+        // Error occurred
+        console.error('Registration error:', result.message);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
+        return false;
       }
-      return true;
     } catch (error) {
       console.error('Registration error:', error);
       if (isMountedRef.current) {
@@ -183,12 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(true);
       }
       
-      // Sign out from Firebase
-      await firebaseAuth.signOut();
-      
-      // Clear local storage
-      await AsyncStorage.removeItem('user');
-      await AsyncStorage.removeItem('phoneNumber');
+      await signOut();
       
       if (isMountedRef.current) {
         setUser(null);
@@ -204,20 +247,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateProfile = async (data: Partial<User>): Promise<boolean> => {
     try {
+      if (!user) return false;
+      
       if (isMountedRef.current) {
         setIsLoading(true);
       }
       
-      if (user && isMountedRef.current) {
-        const updatedUser = { ...user, ...data };
-        setUser(updatedUser);
-        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-      }
+      const result = await updateUserProfile(user.id, data);
       
-      if (isMountedRef.current) {
-        setIsLoading(false);
+      if ('id' in result) {
+        // Update successful
+        if (isMountedRef.current) {
+          setUser(result);
+          await AsyncStorage.setItem('user', JSON.stringify(result));
+          setIsLoading(false);
+        }
+        return true;
+      } else {
+        // Error occurred
+        console.error('Profile update error:', result.message);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
+        return false;
       }
-      return true;
     } catch (error) {
       console.error('Profile update error:', error);
       if (isMountedRef.current) {
@@ -229,10 +282,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const uploadDriverLicense = async (uri: string): Promise<string | null> => {
     try {
+      if (!user) return null;
+      
       if (isMountedRef.current) {
         setIsLoading(true);
       }
-      // In a real app, this would upload the image to Firebase Storage
+      
+      // In a real app, this would upload the image to Supabase Storage
       // For demo purposes, we'll simulate this process
       console.log(`Uploading driver's license: ${uri}`);
       
@@ -241,20 +297,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       const mockDownloadUrl = 'https://example.com/license.jpg';
       
-      if (user && isMountedRef.current) {
-        const updatedUser = { 
-          ...user, 
-          driverLicense: mockDownloadUrl,
-          isVerified: true
-        };
-        setUser(updatedUser);
-        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      // Update user profile with license URL
+      const result = await updateUserProfile(user.id, { 
+        driverLicense: mockDownloadUrl,
+        isVerified: true
+      });
+      
+      if ('id' in result && isMountedRef.current) {
+        setUser(result);
+        await AsyncStorage.setItem('user', JSON.stringify(result));
+        setIsLoading(false);
+        return mockDownloadUrl;
       }
       
       if (isMountedRef.current) {
         setIsLoading(false);
       }
-      return mockDownloadUrl;
+      return null;
     } catch (error) {
       console.error('License upload error:', error);
       if (isMountedRef.current) {
@@ -271,7 +330,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isLoading, 
         isInitialized,
         login, 
-        verifyOTP, 
+        verifyOTP: verifyOTPCode, 
         register, 
         logout,
         updateProfile,

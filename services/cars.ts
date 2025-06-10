@@ -1,6 +1,7 @@
 import { Car } from '@/types/Car';
+import { supabase } from './supabase';
 
-// Mock car data for the app
+// Mock car data for the app (in a real app, this would come from Supabase)
 const mockCars: Car[] = [
   {
     id: 'car-1',
@@ -456,23 +457,64 @@ const mockCars: Car[] = [
 
 // Get all cars
 export const getCars = async (): Promise<Car[]> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return mockCars;
+  try {
+    // In a real app, this would query the Supabase cars table
+    // const { data, error } = await supabase
+    //   .from('cars')
+    //   .select('*')
+    //   .eq('is_approved', true)
+    //   .eq('is_active', true);
+    
+    // if (error) throw error;
+    
+    // For now, simulate API delay and return mock data
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return mockCars;
+  } catch (error) {
+    console.error('Error fetching cars:', error);
+    return [];
+  }
 };
 
 // Get a car by ID
 export const getCarById = async (id: string): Promise<Car | null> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-  return mockCars.find(car => car.id === id) || null;
+  try {
+    // In a real app, this would query the Supabase cars table
+    // const { data, error } = await supabase
+    //   .from('cars')
+    //   .select('*')
+    //   .eq('id', id)
+    //   .single();
+    
+    // if (error) throw error;
+    
+    // For now, simulate API delay and return mock data
+    await new Promise(resolve => setTimeout(resolve, 800));
+    return mockCars.find(car => car.id === id) || null;
+  } catch (error) {
+    console.error('Error fetching car:', error);
+    return null;
+  }
 };
 
 // Get cars by user ID
 export const getCarsByUserId = async (userId: string): Promise<Car[]> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-  return mockCars.filter(car => car.userId === userId);
+  try {
+    // In a real app, this would query the Supabase cars table
+    // const { data, error } = await supabase
+    //   .from('cars')
+    //   .select('*')
+    //   .eq('owner_id', userId);
+    
+    // if (error) throw error;
+    
+    // For now, simulate API delay and return mock data
+    await new Promise(resolve => setTimeout(resolve, 800));
+    return mockCars.filter(car => car.userId === userId);
+  } catch (error) {
+    console.error('Error fetching user cars:', error);
+    return [];
+  }
 };
 
 // Search cars
@@ -487,46 +529,64 @@ export const searchCars = async (
     carType?: string;
   }
 ): Promise<Car[]> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1200));
-  
-  let filteredCars = [...mockCars];
-  
-  // Apply text search
-  if (query) {
-    const lowercaseQuery = query.toLowerCase();
-    filteredCars = filteredCars.filter(car => 
-      car.make.toLowerCase().includes(lowercaseQuery) ||
-      car.model.toLowerCase().includes(lowercaseQuery)
-    );
-  }
-  
-  // Apply filters
-  if (filters) {
-    if (filters.priceMin !== undefined) {
-      filteredCars = filteredCars.filter(car => car.price >= filters.priceMin!);
-    }
+  try {
+    // In a real app, this would use Supabase's full-text search and filters
+    // let queryBuilder = supabase
+    //   .from('cars')
+    //   .select('*')
+    //   .eq('is_approved', true)
+    //   .eq('is_active', true);
     
-    if (filters.priceMax !== undefined) {
-      filteredCars = filteredCars.filter(car => car.price <= filters.priceMax!);
-    }
+    // if (query) {
+    //   queryBuilder = queryBuilder.textSearch('fts', query);
+    // }
     
-    if (filters.distance !== undefined) {
-      filteredCars = filteredCars.filter(car => car.distance <= filters.distance!);
-    }
+    // Apply filters...
     
-    if (filters.instantBooking !== undefined) {
-      filteredCars = filteredCars.filter(car => car.instantBooking === filters.instantBooking);
-    }
+    // For now, simulate API delay and filter mock data
+    await new Promise(resolve => setTimeout(resolve, 1200));
     
-    if (filters.features && filters.features.length > 0) {
+    let filteredCars = [...mockCars];
+    
+    // Apply text search
+    if (query) {
+      const lowercaseQuery = query.toLowerCase();
       filteredCars = filteredCars.filter(car => 
-        filters.features!.every(feature => 
-          car.features.includes(feature)
-        )
+        car.make.toLowerCase().includes(lowercaseQuery) ||
+        car.model.toLowerCase().includes(lowercaseQuery)
       );
     }
+    
+    // Apply filters
+    if (filters) {
+      if (filters.priceMin !== undefined) {
+        filteredCars = filteredCars.filter(car => car.price >= filters.priceMin!);
+      }
+      
+      if (filters.priceMax !== undefined) {
+        filteredCars = filteredCars.filter(car => car.price <= filters.priceMax!);
+      }
+      
+      if (filters.distance !== undefined) {
+        filteredCars = filteredCars.filter(car => car.distance <= filters.distance!);
+      }
+      
+      if (filters.instantBooking !== undefined) {
+        filteredCars = filteredCars.filter(car => car.instantBooking === filters.instantBooking);
+      }
+      
+      if (filters.features && filters.features.length > 0) {
+        filteredCars = filteredCars.filter(car => 
+          filters.features!.every(feature => 
+            car.features.includes(feature)
+          )
+        );
+      }
+    }
+    
+    return filteredCars;
+  } catch (error) {
+    console.error('Error searching cars:', error);
+    return [];
   }
-  
-  return filteredCars;
 };
