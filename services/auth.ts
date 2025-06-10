@@ -133,16 +133,12 @@ export const verifyOTP = async (code: string): Promise<User | AuthError> => {
 /**
  * Create a new user profile
  */
-export const createUserProfile = async (userData: Partial<User>): Promise<User | AuthError> => {
+export const createUserProfile = async (userId: string, phoneNumber: string, userData: Partial<User>): Promise<User | AuthError> => {
   try {
-    // Get the current session first
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    
-    if (!user) {
+    if (!userId) {
       return {
         code: 'no_user',
-        message: 'No authenticated user found. Please verify your phone number first.'
+        message: 'User ID is required to create profile.'
       };
     }
     
@@ -150,8 +146,8 @@ export const createUserProfile = async (userData: Partial<User>): Promise<User |
     const { data, error } = await supabase
       .from('users')
       .upsert({
-        id: user.id,
-        phone: user.phone,
+        id: userId,
+        phone: phoneNumber,
         full_name: userData.displayName,
         email: userData.email,
         national_id: userData.nationalId,
@@ -171,14 +167,14 @@ export const createUserProfile = async (userData: Partial<User>): Promise<User |
     
     const createdUser: User = {
       id: data.id,
-      phoneNumber: data.phone || user.phone || '',
+      phoneNumber: data.phone || phoneNumber || '',
       displayName: data.full_name || '',
       email: data.email || '',
       nationalId: data.national_id,
       driverLicense: data.driver_license,
       isVerified: data.is_verified || false,
       profileImage: data.avatar_url,
-      created: data.created_at || user.created_at
+      created: data.created_at
     };
     
     return createdUser;
