@@ -18,6 +18,7 @@ import { SplashScreen } from 'expo-router';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { I18nProvider } from '@/contexts/I18nContext';
 import { SelectedLanguageProvider } from '@/contexts/SelectedLanguageContext';
+import { Platform, View } from 'react-native'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 
 // Prevent splash screen from auto-hiding
