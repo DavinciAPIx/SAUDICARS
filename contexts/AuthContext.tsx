@@ -166,7 +166,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const result = await verifyOTP(otp);
       
       if ('id' in result) {
-        // Verification successful - let onAuthStateChange handle user state updates
+        // Verification successful - immediately set user state to avoid timing issues
+        const userData: User = {
+          id: result.id,
+          phoneNumber: result.phone || '',
+          displayName: '',
+          email: result.email || '',
+          isVerified: false,
+          driverLicense: undefined,
+          nationalId: undefined,
+          profileImage: undefined,
+          created: result.created_at
+        };
+        
+        if (isMountedRef.current) {
+          setUser(userData);
+          await AsyncStorage.setItem('user', JSON.stringify(userData));
+        }
+        
         if (isMountedRef.current) {
           setIsLoading(false);
         }
@@ -190,10 +207,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const register = async (userData: Partial<User>): Promise<boolean> => {
     try {
-      // Get current session to ensure we have a user ID
-      const session = await getCurrentSession();
-      if (!session?.user) {
-        console.error('Registration error: No authenticated session found');
+      // Use the user from context instead of trying to get session
+      if (!user) {
+        console.error('Registration error: No user found in context');
         return false;
       }
       
@@ -201,9 +217,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(true);
       }
       
-      // Use session user ID and phone number from stored data
-      const phoneNumber = await AsyncStorage.getItem('phoneNumber') || '';
-      const result = await createUserProfile(session.user.id, phoneNumber, userData);
+      // Use user ID from context and phone number from user object
+      const result = await createUserProfile(user.id, user.phoneNumber, userData);
       
       if ('id' in result) {
         // Registration successful - let onAuthStateChange handle user state updates
