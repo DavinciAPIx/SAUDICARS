@@ -192,21 +192,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const register = async (userData: Partial<User>): Promise<boolean> => {
     try {
+      if (!user) {
+        console.error('Registration error: No user found in context');
+        return false;
+      }
+      
       if (isMountedRef.current) {
         setIsLoading(true);
       }
       
-      // Check if user is authenticated first
-      const session = await getCurrentSession();
-      if (!session?.user) {
-        console.error('Registration error: User must be authenticated first');
-        if (isMountedRef.current) {
-          setIsLoading(false);
-        }
-        return false;
-      }
-      
-      const result = await createUserProfile(userData);
+      const result = await createUserProfile(user.id, user.phoneNumber, userData);
       
       if ('id' in result) {
         // Registration successful
