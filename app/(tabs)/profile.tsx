@@ -20,10 +20,6 @@ export default function ProfileScreen() {
     await setSelectedLanguage(newLanguage);
   };
 
-  const handleLogout = async () => {
-    router.replace('/(auth)/login');
-  };
-
   const MenuOption = ({ 
     icon, 
     title, 
@@ -101,7 +97,7 @@ export default function ProfileScreen() {
               fontFamily: isRTL ? 'Cairo-SemiBold' : 'Poppins-SemiBold'
             }
           ]}>
-            Ahmed Al-Rashid
+            {'User Name'}
           </Text>
           <Text style={[
             styles.profileVerified,
