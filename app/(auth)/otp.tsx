@@ -20,7 +20,7 @@ import { ChevronLeft } from 'lucide-react-native';
 
 export default function OTPScreen() {
   const { t, isRTL } = useI18n();
-  const { verifyOTP, isLoading } = useAuth();
+  const { user, verifyOTP, isLoading } = useAuth();
   const [otp, setOTP] = useState(['', '', '', '']);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [timer, setTimer] = useState(60);
@@ -64,6 +64,18 @@ export default function OTPScreen() {
       }
     };
   }, []);
+
+  // Watch for user state changes after OTP verification
+  useEffect(() => {
+    if (user && isMountedRef.current) {
+      // User is now authenticated, check if profile is complete
+      if (user.isVerified && user.displayName) {
+        router.replace('/(tabs)');
+      } else {
+        router.push('/(auth)/register');
+      }
+    }
+  }, [user]);
 
   const focusNextInput = (index: number) => {
     if (index < 3 && inputRefs.current[index + 1]) {
@@ -125,22 +137,10 @@ export default function OTPScreen() {
 
     const success = await verifyOTP(otpValue);
     
-    if (success && isMountedRef.current) {
-      // Check if user info is complete
-      const user = await AsyncStorage.getItem('user');
-      if (user) {
-        const parsedUser = JSON.parse(user);
-        if (parsedUser.isVerified) {
-          router.replace('/(tabs)');
-        } else {
-          router.push('/(auth)/register');
-        }
-      } else {
-        router.push('/(auth)/register');
-      }
-    } else if (isMountedRef.current) {
+    if (!success && isMountedRef.current) {
       setError('Invalid OTP. Please try again.');
     }
+    // Navigation will be handled by the useEffect watching user state
   };
 
   return (
