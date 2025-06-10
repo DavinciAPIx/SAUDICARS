@@ -110,7 +110,7 @@ export default function HomeScreen() {
             { 
               color: colors.textSecondary,
               fontFamily: isRTL ? 'Cairo-Regular' : 'Poppins-Regular'
-            }
+              }
           ]}>
             /{t('common.day')}
           </Text>
@@ -171,7 +171,7 @@ export default function HomeScreen() {
                 fontFamily: isRTL ? 'Cairo-Regular' : 'Poppins-Regular'
               }
             ]}>
-              {t('home.greeting')}, Ahmed
+              {t('home.greeting')}
             </Text>
             <Text style={[
               styles.findCarText,

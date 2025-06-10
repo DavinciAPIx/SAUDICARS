@@ -1,6 +1,5 @@
 import { StyleSheet, View, Text, TouchableOpacity, FlatList, Image } from 'react-native';
 import { useI18n } from '@/contexts/I18nContext';
-import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Plus, Car, Tag, Settings } from 'lucide-react-native';
@@ -13,7 +12,6 @@ type ListingStatus = 'active' | 'inactive' | 'pending' | 'all';
 
 export default function ListingsScreen() {
   const { t, isRTL } = useI18n();
-  const { user } = useAuth();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const [listings, setListings] = useState<CarType[]>([]);
@@ -25,17 +23,15 @@ export default function ListingsScreen() {
   }, []);
 
   const loadUserListings = async () => {
-    if (user) {
-      try {
-        setIsLoading(true);
-        // In a real app, we'd be using user.id rather than a mock user ID
-        const userListings = await getCarsByUserId('user-1'); // Using mock user ID for demo
-        setListings(userListings);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error loading user listings:', error);
-        setIsLoading(false);
-      }
+    try {
+      setIsLoading(true);
+      // Using mock user ID for demo
+      const userListings = await getCarsByUserId('user-1');
+      setListings(userListings);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error loading user listings:', error);
+      setIsLoading(false);
     }
   };
 
