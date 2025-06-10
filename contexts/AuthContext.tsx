@@ -198,6 +198,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(true);
       }
       
+      // Check if user is authenticated first
+      const session = await getCurrentSession();
+      if (!session?.user) {
+        console.error('Registration error: User must be authenticated first');
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
+        return false;
+      }
+      
       const result = await createUserProfile(userData);
       
       if ('id' in result) {

@@ -135,10 +135,15 @@ export const verifyOTP = async (code: string): Promise<User | AuthError> => {
  */
 export const createUserProfile = async (userData: Partial<User>): Promise<User | AuthError> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    // Get the current session first
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     
     if (!user) {
-      throw new Error('No authenticated user found');
+      return {
+        code: 'no_user',
+        message: 'No authenticated user found. Please verify your phone number first.'
+      };
     }
     
     // Insert or update user profile
