@@ -5,7 +5,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { useSelectedLanguage } from '@/contexts/SelectedLanguageContext';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { User, Car, CalendarCheck, MessageSquare, CreditCard, Settings, CircleHelp as HelpCircle, ChevronRight, Globe, Bell, Moon } from 'lucide-react-native'-react-native';
+import { User, Car, CalendarCheck, MessageSquare, CreditCard, Settings, CircleHelp as HelpCircle, ChevronRight, Globe, Bell, Moon } from 'lucide-react-native';
 
 export default function ProfileScreen() {
   const { t, isRTL, locale } = useI18n();
