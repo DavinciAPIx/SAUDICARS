@@ -14,24 +14,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useI18n } from '@/contexts/I18nContext';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import {
-  ArrowLeft,
-  Heart,
-  Share,
-  Star,
-  MapPin,
-  Users,
-  Fuel,
-  Settings,
-  Calendar,
-  Shield,
-  MessageSquare,
-  Phone,
-  CheckCircle,
-  Clock,
-  Car,
-  Zap,
-} from 'lucide-react-native';
+import { ArrowLeft, Heart, Share, Star, MapPin, Users, Fuel, Settings, Calendar, Shield, MessageSquare, Phone, CircleCheck as CheckCircle, Clock, Car, Zap } from 'lucide-react-native';
 import { getCarById } from '@/services/cars';
 import { Car } from '@/types/Car';
 
